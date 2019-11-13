@@ -1,5 +1,8 @@
 package pt.archifeed.flink;
 
+import java.time.Duration;
+import java.time.LocalTime;
+
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -27,20 +30,22 @@ public class TransactionProcesser {
 		try {
 		
 			StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+			env.setParallelism(1);
+			String secret = "h.uzZJ$j3S^jHV";
 			
-			
-			
-			long now = System.currentTimeMillis();
+			LocalTime initialTime = LocalTime.now();
 			DataStream<String> text = env.readTextFile("text-files/minitransaction.csv");
 			
-			SingleOutputStreamOperator<Tuple2<String,String>> tuples = text.map(new TransctionMapper(now));
+			SingleOutputStreamOperator<Tuple2<String,String>> tuples = text.map(new TransctionMapper(initialTime,secret));
 			
 			tuples.addSink(new RedisSink<Tuple2<String, String>>(conf, new RedisExampleMapper()));
 			
 			
 			env.execute();
-			long time = System.currentTimeMillis()-now;
-			System.out.println("Total time: "+time+" Number of transactions: "+(TransctionMapper.getLastId()-1)+" Avarage time per transaction: "+(time/(TransctionMapper.getLastId()-1.0)));
+			LocalTime finalTime = LocalTime.now();
+			Duration duration = Duration.between(initialTime, finalTime);
+			int numberTransactions = TransctionMapper.getLastId()-1;
+			System.out.println("Total time: "+duration.toMillis()+" Number of transactions: "+numberTransactions+" Avarage time per transaction: "+(duration.toMillis()/(numberTransactions*1.0)+" Transactions/second: "+numberTransactions/(duration.getSeconds()*1.0)));
 			
 		} finally {
 //			decisionRules.close();
@@ -50,7 +55,7 @@ public class TransactionProcesser {
 	
 	public static class TransctionMapper implements MapFunction<String, Tuple2<String,String>>{
 		/**
-		 * 
+		 * Maps a line of the file to a id, and a json.
 		 */
 		private static final long serialVersionUID = -3656332727175530315L;
 		
@@ -58,7 +63,8 @@ public class TransactionProcesser {
 //		private Jedis enrichmentData;
 		//Automatic generate id;
 		private static int id = 1;
-		private long now;
+		private LocalTime initialTime;
+		private String secret;
 		
 //		public TransctionMapper(Jedis decisionRules, Jedis enrichmentData) {
 //			super();
@@ -67,9 +73,10 @@ public class TransactionProcesser {
 //		}
 
 
-		public TransctionMapper(long now) {
+		public TransctionMapper(LocalTime initialTime, String secret) {
 			// TODO Auto-generated constructor stub
-			this.now = now;
+			this.initialTime = initialTime;
+			this.secret = secret;
 		}
 
 		@Override
@@ -90,7 +97,7 @@ public class TransactionProcesser {
 			
 			
 			if(id%10000 == 0) {
-				System.out.println(id+": "+(System.currentTimeMillis()-this.now));
+				System.out.println(id+": "+Duration.between(this.initialTime, LocalTime.now()).toMillis());
 			}
 			
 			
@@ -100,6 +107,11 @@ public class TransactionProcesser {
 			
 			//Convert Transaction to json string
 			String json = new JSONObject(transaction).toString();
+			
+			//If a secret is available we encrypt
+			if(this.secret != null) {
+				json = AES.encrypt(json, this.secret);
+			}
 			
 			decisionRules.close();
 			enrichmentData.close();
