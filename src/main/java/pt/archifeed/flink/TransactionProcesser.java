@@ -5,6 +5,7 @@ import java.time.LocalTime;
 
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -21,36 +22,35 @@ import redis.clients.jedis.Jedis;
 public class TransactionProcesser {
 	public static void main(String[] args) throws Exception {
 		
+		ParameterTool params = ParameterTool.fromArgs(args);
 		
-		FlinkJedisPoolConfig conf = new FlinkJedisPoolConfig.Builder().setHost("172.17.0.4").setPort(6379).build();
+		//FlinkJedisPoolConfig conf = new FlinkJedisPoolConfig.Builder().setHost("172.17.0.4").setPort(6379).build();
 		
-//		Jedis decisionRules = new Jedis("172.17.0.2", 6379);
-//		Jedis enrichmentData = new Jedis("172.17.0.3", 6379);
+		FlinkJedisPoolConfig conf = new FlinkJedisPoolConfig.Builder().setHost(params.get("transactions-host")).setPort(6379).build();
+		String decisionsRulesHost = params.get("decisions-rules-host");
+		String enrichmentHost = params.get("enrichment-host");
 		
-		try {
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		env.setParallelism(1);
+		//String secret = "h.uzZJ$j3S^jHV";
+		String secret = params.get("secret");
 		
-			StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-			env.setParallelism(1);
-			String secret = "h.uzZJ$j3S^jHV";
-			
-			LocalTime initialTime = LocalTime.now();
-			DataStream<String> text = env.readTextFile("text-files/minitransaction.csv");
-			
-			SingleOutputStreamOperator<Tuple2<String,String>> tuples = text.map(new TransctionMapper(initialTime,secret));
-			
-			tuples.addSink(new RedisSink<Tuple2<String, String>>(conf, new RedisExampleMapper()));
-			
-			
-			env.execute();
-			LocalTime finalTime = LocalTime.now();
-			Duration duration = Duration.between(initialTime, finalTime);
-			int numberTransactions = TransctionMapper.getLastId()-1;
-			System.out.println("Total time: "+duration.toMillis()+" Number of transactions: "+numberTransactions+" Avarage time per transaction: "+(duration.toMillis()/(numberTransactions*1.0)+" Transactions/second: "+numberTransactions/(duration.getSeconds()*1.0)));
-			
-		} finally {
-//			decisionRules.close();
-//			enrichmentData.close();
-		}
+		LocalTime initialTime = LocalTime.now();
+		//DataStream<String> text = env.readTextFile("text-files/minitransaction.csv");
+		DataStream<String> text = env.readTextFile(params.get("file-path"));
+		
+		SingleOutputStreamOperator<Tuple2<String,String>> tuples = text.map(new TransctionMapper(initialTime,secret, decisionsRulesHost, enrichmentHost));
+		
+		tuples.addSink(new RedisSink<Tuple2<String, String>>(conf, new RedisExampleMapper()));
+		
+		
+		env.execute();
+		LocalTime finalTime = LocalTime.now();
+		Duration duration = Duration.between(initialTime, finalTime);
+		int numberTransactions = TransctionMapper.getLastId()-1;
+		System.out.println("Total time: "+duration.toMillis()+" Number of transactions: "+numberTransactions+" Avarage time per transaction: "+(duration.toMillis()/(numberTransactions*1.0)+" Transactions/second: "+numberTransactions/(duration.getSeconds()*1.0)));
+		
+
 	}
 	
 	public static class TransctionMapper implements MapFunction<String, Tuple2<String,String>>{
@@ -65,6 +65,8 @@ public class TransactionProcesser {
 		private static int id = 1;
 		private LocalTime initialTime;
 		private String secret;
+		private String decisionsRulesHost;
+		private String enrichmentHost;
 		
 //		public TransctionMapper(Jedis decisionRules, Jedis enrichmentData) {
 //			super();
@@ -73,16 +75,18 @@ public class TransactionProcesser {
 //		}
 
 
-		public TransctionMapper(LocalTime initialTime, String secret) {
+		public TransctionMapper(LocalTime initialTime, String secret, String decisionsRulesHost, String enrichmentHost) {
 			// TODO Auto-generated constructor stub
 			this.initialTime = initialTime;
 			this.secret = secret;
+			this.decisionsRulesHost = decisionsRulesHost;
+			this.enrichmentHost = enrichmentHost;
 		}
 
 		@Override
 		public Tuple2<String,String> map(String value) throws Exception {
-			Jedis decisionRules = new Jedis("172.17.0.2", 6379);
-			Jedis enrichmentData = new Jedis("172.17.0.3", 6379);
+			Jedis decisionRules = new Jedis(this.decisionsRulesHost, 6379);
+			Jedis enrichmentData = new Jedis(this.enrichmentHost, 6379);
 			String[] fields = value.split(",");
 			TransactionModel transaction = new TransactionModel(fields);
 			

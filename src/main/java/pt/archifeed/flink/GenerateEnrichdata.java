@@ -4,6 +4,7 @@ import java.util.Random;
 
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -16,15 +17,16 @@ import org.apache.flink.streaming.connectors.redis.common.mapper.RedisMapper;
 public class GenerateEnrichdata {
 	public static void main(String[] args) throws Exception {
 		
-		
-		FlinkJedisPoolConfig conf = new FlinkJedisPoolConfig.Builder().setHost("172.17.0.3").setPort(6379).build();
-		
+		ParameterTool params = ParameterTool.fromArgs(args);
+		//FlinkJedisPoolConfig conf = new FlinkJedisPoolConfig.Builder().setHost("172.17.0.3").setPort(6379).build();
+		FlinkJedisPoolConfig conf = new FlinkJedisPoolConfig.Builder().setHost(params.get("enrichment-host")).setPort(6379).build();
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		
 		
 		
 		long now = System.currentTimeMillis();
-		DataStream<String> text = env.readTextFile("text-files/transactions.csv");
+		//DataStream<String> text = env.readTextFile("text-files/transactions.csv");
+		DataStream<String> text = env.readTextFile(params.get("file-path"));
 		
 		SingleOutputStreamOperator<Tuple2<String,String>> tuples = text.map(new MapFunction<String, Tuple2<String,String>>() {
 
