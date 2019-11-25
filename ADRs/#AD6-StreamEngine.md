@@ -1,19 +1,22 @@
-# AR1 - Caching tecnologies
+# AD6 - Stream Engine
 
 ## Status
 
-What is the status, such as proposed, accepted, rejected, deprecated, superseded, etc.?
+Accepted
 
 ## Context
 
-What is the issue that we're seeing that is motivating this decision or change?
+Due to the input nature of the data being processed, it is necessary to use some sort of realtime event processor. There are some tools on the market aiming event processing by batching and realtime, nevertheless the project requires realtime only.
 
 ## Decision
 
-What is the change that we're proposing and/or doing?
+Usage of Apache Flink. 
+The selected technology is High Throughput/ Low Latency optimized, achieving a median latency of 0 milliseconds (20 milliseconds on 99th percentile). The corresponding Throughput is 24.500events/second per core.
 
 ## Consequences
 
-What becomes easier or more difficult to do because of this change?
+NA
 
 ## Alternatives
+
+Apache Spark;
