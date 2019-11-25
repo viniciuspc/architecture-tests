@@ -1,13 +1,5 @@
 # AD1 - Caching tecnologies
 
-### Status
-#### Proposed
-#### Accepted
-#### Rejected
-#### Deprecated
-#### Superseded
-
-
 ## Status
 
 Accepted

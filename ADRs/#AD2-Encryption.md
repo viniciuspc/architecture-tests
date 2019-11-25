@@ -1,12 +1,5 @@
 # AD2 - Encryption
 
-### Status
-#### Proposed
-#### Accepted
-#### Rejected
-#### Deprecated
-#### Superseded
-
 ## Status
 
 Accepted
