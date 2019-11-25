@@ -1,19 +1,32 @@
-# AR1 - Caching tecnologies
+# AD1 - Caching tecnologies
+
+### Status
+#### Proposed
+#### Accepted
+#### Rejected
+#### Deprecated
+#### Superseded
+
 
 ## Status
 
-What is the status, such as proposed, accepted, rejected, deprecated, superseded, etc.?
+Accepted
 
 ## Context
 
-What is the issue that we're seeing that is motivating this decision or change?
+Data required to evaluate transactions needs to be fast accessed during a transaction evaluation process. The best possible manner to ensure the desired performance in data access is to keep it in memory, more preciselly in a memory cache system.
+
+This raises the need of including a KVS cache system maintained in memory.
 
 ## Decision
 
-What is the change that we're proposing and/or doing?
+Use Redis for kvs caching.
+Redis is a distributed, high availability KVS caching system that maintains data in memory.
 
 ## Consequences
 
-What becomes easier or more difficult to do because of this change?
+NA
 
 ## Alternatives
+
+Cassandra; RocksDb;
