@@ -4,9 +4,11 @@ import java.time.Duration;
 import java.time.LocalTime;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.metrics.Meter;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -17,6 +19,11 @@ import org.apache.flink.streaming.connectors.redis.common.mapper.RedisCommandDes
 import org.apache.flink.streaming.connectors.redis.common.mapper.RedisMapper;
 import org.json.JSONObject;
 
+import pt.archifeed.encription.AES;
+import pt.archifeed.encription.AES128;
+import pt.archifeed.encription.AES256;
+import pt.archifeed.flink.Metrics.CustomDropwizardMeterWrapper;
+import pt.archifeed.flink.Metrics.LatencyMeter;
 import pt.archifeed.flink.model.TransactionModel;
 import redis.clients.jedis.Jedis;
 
@@ -37,14 +44,24 @@ public class TransactionProcesser {
 		//env.setParallelism(1);
 		//String secret = "h.uzZJ$j3S^jHV";
 		String secret = params.get("secret");
+		String aesType = params.get("AES");
+		
+		AES aes = null;
+		if(secret != null && !secret.isEmpty() && aesType != null && !aesType.isEmpty()) {
+			if(aesType.equals("128")) {
+				aes = new AES128(secret);
+			} else if(aesType.equals("256")) {
+				aes = new AES256(secret);
+			}
+		}
 		
 		LocalTime initialTime = LocalTime.now();
 		//DataStream<String> text = env.readTextFile("text-files/minitransaction.csv");
 		DataStream<String> text = env.readTextFile(params.get("file-path"));
 		
-		SingleOutputStreamOperator<Tuple2<String,String>> tuples = text.map(new TransctionMapper(initialTime,secret, decisionsRulesHost, enrichmentHost));
+		SingleOutputStreamOperator<Tuple2<String,String>> tuples = text.map(new TransctionMapper(initialTime,aes, decisionsRulesHost, enrichmentHost));
 		
-		tuples.addSink(new RedisSink<Tuple2<String, String>>(conf, new RedisExampleMapper()));
+		tuples.addSink(new RedisSink<Tuple2<String, String>>(conf, new RedisExampleMapper())).name("RedisSink");
 		
 		
 		env.execute();
@@ -58,40 +75,45 @@ public class TransactionProcesser {
 
 	}
 	
-	public static class TransctionMapper implements MapFunction<String, Tuple2<String,String>>{
+	public static class TransctionMapper extends RichMapFunction<String, Tuple2<String,String>>{
 		/**
 		 * Maps a line of the file to a id, and a json.
 		 */
 		private static final long serialVersionUID = -3656332727175530315L;
 		
-//		private Jedis decisionRules;
-//		private Jedis enrichmentData;
-		//Automatic generate id;
 		private static AtomicInteger id = new AtomicInteger(1);
 		private LocalTime initialTime;
-		private String secret;
+		private AES aes;
 		private String decisionsRulesHost;
 		private String enrichmentHost;
 		
-//		public TransctionMapper(Jedis decisionRules, Jedis enrichmentData) {
-//			super();
-//			this.decisionRules = decisionRules;
-//			this.enrichmentData = enrichmentData;
-//		}
+		private transient Meter meter;
+		private transient Meter latencyMeter;
 
 
-		public TransctionMapper(LocalTime initialTime, String secret, String decisionsRulesHost, String enrichmentHost) {
+		public TransctionMapper(LocalTime initialTime, AES aes, String decisionsRulesHost, String enrichmentHost) {
 			// TODO Auto-generated constructor stub
 			this.initialTime = initialTime;
-			this.secret = secret;
+			this.aes = aes;
 			this.decisionsRulesHost = decisionsRulesHost;
 			this.enrichmentHost = enrichmentHost;
+		}
+		
+		@Override
+		public void open(Configuration parameters) throws Exception {
+			super.open(parameters);
+			this.meter = getRuntimeContext()
+					.getMetricGroup().addGroup("Metrics")
+					.meter("Trhoughput", new CustomDropwizardMeterWrapper(new com.codahale.metrics.Meter()));
+			this.latencyMeter = getRuntimeContext().
+					getMetricGroup().addGroup("Latency")
+					.meter("Latency", new LatencyMeter());
 		}
 
 		@Override
 		public Tuple2<String,String> map(String value) throws Exception {
-			//Critical path
-			//sem.acquire();
+			this.meter.markEvent();
+			this.latencyMeter.markEvent();
 			
 			Jedis decisionRules = new Jedis(this.decisionsRulesHost, 6379);
 			Jedis enrichmentData = new Jedis(this.enrichmentHost, 6379);
@@ -123,8 +145,8 @@ public class TransactionProcesser {
 			String json = new JSONObject(transaction).toString();
 			
 			//If a secret is available we encrypt
-			if(this.secret != null && !this.secret.isEmpty()) {
-				json = AES.encrypt(json, this.secret);
+			if(this.aes != null) {
+				json = aes.encrypt(json);
 			}
 			
 			decisionRules.close();
@@ -132,7 +154,6 @@ public class TransactionProcesser {
 			
 			//Convert Transaction to json string
 			Tuple2<String, String> tuple2 = new Tuple2<String, String>(key, json);
-			
 			
 			return tuple2;
 		}
@@ -144,7 +165,8 @@ public class TransactionProcesser {
 	}
 	
 	public static class RedisExampleMapper implements RedisMapper<Tuple2<String, String>>{
-
+		
+		
 	    @Override
 	    public RedisCommandDescription getCommandDescription() {
 	        return new RedisCommandDescription(RedisCommand.SET, "TRANSACTIONS");
