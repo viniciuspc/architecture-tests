@@ -5,6 +5,7 @@ import weka.classifiers.Evaluation;
 import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Instances;
+import weka.core.SerializationHelper;
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.filters.Filter;
 import weka.filters.unsupervised.attribute.NumericToBinary;
@@ -58,11 +59,19 @@ public class Test {
 		System.out.println("Test Size: "+testData.size());
 		
 		//Classifier cs = new NaiveBayes();
-		Classifier cs = new RandomForest();
+		RandomForest cs = new RandomForest();
+		//cs.setBagSizePercent(50);
+		cs.setDebug(true);
+		cs.setNumIterations(5);
+		cs.setMaxDepth(6);
+		cs.setNumFeatures(2);
+		cs.setBagSizePercent(2);
 		
 		cs.buildClassifier(trainingData);
 		
 		System.out.println("Training Finished...");
+		
+		SerializationHelper.write("models/randomForest.model", cs);
 		
 		Evaluation eval = new Evaluation(trainingData);
 		eval.evaluateModel(cs, testData);
