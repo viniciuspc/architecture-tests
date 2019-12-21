@@ -1,7 +1,9 @@
 package pt.archifeed.ml;
 
+import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.bayes.NaiveBayes;
+import weka.classifiers.trees.RandomForest;
 import weka.core.Instances;
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.filters.Filter;
@@ -55,12 +57,15 @@ public class Test {
 		Instances testData = Filter.useFilter(data, rp);
 		System.out.println("Test Size: "+testData.size());
 		
-		NaiveBayes nb = new NaiveBayes();
+		//Classifier cs = new NaiveBayes();
+		Classifier cs = new RandomForest();
 		
-		nb.buildClassifier(trainingData);
+		cs.buildClassifier(trainingData);
+		
+		System.out.println("Training Finished...");
 		
 		Evaluation eval = new Evaluation(trainingData);
-		eval.evaluateModel(nb, testData);
+		eval.evaluateModel(cs, testData);
 		System.out.println(eval.toSummaryString("\nResults\n======\n", false));
 		double[][] confusionMatrix = eval.confusionMatrix();
 		
