@@ -9,9 +9,12 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Meter;
+import org.apache.flink.metrics.MetricGroup;
+import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.connectors.redis.RedisSink;
 import org.apache.flink.streaming.connectors.redis.common.config.FlinkJedisPoolConfig;
 import org.apache.flink.streaming.connectors.redis.common.mapper.RedisCommand;
@@ -22,6 +25,9 @@ import org.json.JSONObject;
 import pt.archifeed.encription.AES;
 import pt.archifeed.encription.AES128;
 import pt.archifeed.encription.AES256;
+import pt.archifeed.flink.MapFunctions.EnrichMapper;
+import pt.archifeed.flink.MapFunctions.JsonEncryptMapper;
+import pt.archifeed.flink.MapFunctions.RulesMapper;
 import pt.archifeed.flink.Metrics.CustomDropwizardMeterWrapper;
 import pt.archifeed.flink.Metrics.LatencyMeter;
 import pt.archifeed.flink.model.TransactionModel;
@@ -40,6 +46,7 @@ public class TransactionProcesser {
 		String enrichmentHost = params.get("enrichment-host");
 		
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 		
 		//env.setParallelism(1);
 		//String secret = "h.uzZJ$j3S^jHV";
@@ -56,118 +63,33 @@ public class TransactionProcesser {
 		}
 		
 		LocalTime initialTime = LocalTime.now();
-		//DataStream<String> text = env.readTextFile("text-files/minitransaction.csv");
+		
+		//Steps:
+		//1 - Read file stream. Output text
 		DataStream<String> text = env.readTextFile(params.get("file-path"));
 		
-		SingleOutputStreamOperator<Tuple2<String,String>> tuples = text.map(new TransctionMapper(initialTime,aes, decisionsRulesHost, enrichmentHost));
+		//2 - Convert text into Object while enrich it with the country information. Output TransactionModel
+		SingleOutputStreamOperator<TransactionModel> transactionModels = text.map(new EnrichMapper(enrichmentHost));
+		//3 - Make a agregation in a time window and sum the amount. Otput ...
+		//transactionModels.keyBy((transaction) -> transaction.getNameOrig()).timeWindow(Time.hours(2)).reduce((a,b) -> a.getAmount()+b.getAmount());
 		
+		//4 - apply rules - country and sum of the amunt Output TransactionModel
+		SingleOutputStreamOperator<TransactionModel> transactionModelsWithRules = transactionModels.map(new RulesMapper(decisionsRulesHost));
+		//5 - Convert to json and encrypt if is nescessary. Output Tuple2<String,String>
+		SingleOutputStreamOperator<Tuple2<String,String>> tuples = transactionModelsWithRules.map(new JsonEncryptMapper(initialTime, aes));
+		//6 - sink this to redis.
 		tuples.addSink(new RedisSink<Tuple2<String, String>>(conf, new RedisExampleMapper())).name("RedisSink");
 		
 		
 		env.execute();
-		
-		LocalTime finalTime = LocalTime.now();
-		Duration duration = Duration.between(initialTime, finalTime);
-		
-		int numberTransactions = TransctionMapper.getLastId()-1;
-		System.out.println("Total time: "+duration.toMillis()+" Number of transactions: "+numberTransactions+" Avarage time per transaction: "+(duration.toMillis()/(numberTransactions*1.0)+" Transactions/second: "+numberTransactions/(duration.getSeconds()*1.0)));
-		
 
-	}
-	
-	public static class TransctionMapper extends RichMapFunction<String, Tuple2<String,String>>{
-		/**
-		 * Maps a line of the file to a id, and a json.
-		 */
-		private static final long serialVersionUID = -3656332727175530315L;
-		
-		private static AtomicInteger id = new AtomicInteger(1);
-		private LocalTime initialTime;
-		private AES aes;
-		private String decisionsRulesHost;
-		private String enrichmentHost;
-		
-		private transient Meter meter;
-		private transient Meter latencyMeter;
-
-
-		public TransctionMapper(LocalTime initialTime, AES aes, String decisionsRulesHost, String enrichmentHost) {
-			// TODO Auto-generated constructor stub
-			this.initialTime = initialTime;
-			this.aes = aes;
-			this.decisionsRulesHost = decisionsRulesHost;
-			this.enrichmentHost = enrichmentHost;
-		}
-		
-		@Override
-		public void open(Configuration parameters) throws Exception {
-			super.open(parameters);
-			this.meter = getRuntimeContext()
-					.getMetricGroup().addGroup("Metrics")
-					.meter("Trhoughput", new CustomDropwizardMeterWrapper(new com.codahale.metrics.Meter()));
-			this.latencyMeter = getRuntimeContext().
-					getMetricGroup().addGroup("Latency")
-					.meter("Latency", new LatencyMeter());
-		}
-
-		@Override
-		public Tuple2<String,String> map(String value) throws Exception {
-			this.meter.markEvent();
-			this.latencyMeter.markEvent();
-			
-			Jedis decisionRules = new Jedis(this.decisionsRulesHost, 6379);
-			Jedis enrichmentData = new Jedis(this.enrichmentHost, 6379);
-			String[] fields = value.split(",");
-			TransactionModel transaction = new TransactionModel(fields);
-			
-			transaction.setCountryOrig(enrichmentData.get(transaction.getNameOrig()));
-			
-			transaction.setCountryDest(enrichmentData.get(transaction.getNameDest()));
-			
-			//If the country of origin or destination is on decision rules then set trasanction as fraud
-			if(decisionRules.exists(transaction.getCountryOrig(),transaction.getCountryDest()) > 0 ) {
-				transaction.setFraud(true);
-			}
-			
-			//Increase the counter
-			String key = String.valueOf(id.getAndIncrement());
-			
-			if(id.get()%10000 == 0) {
-				System.out.println(id.get()+": "+Duration.between(this.initialTime, LocalTime.now()).toMillis());
-			}
-			
-			
-			
-			
-			
-			
-			//Convert Transaction to json string
-			String json = new JSONObject(transaction).toString();
-			
-			//If a secret is available we encrypt
-			if(this.aes != null) {
-				json = aes.encrypt(json);
-			}
-			
-			decisionRules.close();
-			enrichmentData.close();
-			
-			//Convert Transaction to json string
-			Tuple2<String, String> tuple2 = new Tuple2<String, String>(key, json);
-			
-			return tuple2;
-		}
-		
-		public static int getLastId() {
-			return id.get();
-		}
-		
 	}
 	
 	public static class RedisExampleMapper implements RedisMapper<Tuple2<String, String>>{
 		
-		
-	    @Override
+		private static final long serialVersionUID = -3300467364501490398L;
+
+		@Override
 	    public RedisCommandDescription getCommandDescription() {
 	        return new RedisCommandDescription(RedisCommand.SET, "TRANSACTIONS");
 	    }
