@@ -53,6 +53,7 @@ public class ApplyMLMapper extends RichMapFunction<TransactionModel, Transaction
 			if(classifyInstance == 1) {
 				value.setFraud(true);
 			}
+			inst = null;
 		}
 		
 		return value;

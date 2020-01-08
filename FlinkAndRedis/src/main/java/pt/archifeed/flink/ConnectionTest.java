@@ -1,23 +1,25 @@
 package pt.archifeed.flink;
 
+import java.util.List;
+
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.java.DataSet;
+import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;import org.apache.flink.streaming.api.functions.sink.SinkFunction;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
-import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 
 import pt.archifeed.flink.TransactionProcesser.HourlyExtractor;
 import pt.archifeed.flink.TransactionProcesser.SumAggregate;
-import pt.archifeed.flink.MapFunctions.EnrichMapper;
 import pt.archifeed.flink.model.TransactionModel;
 
 /**
- * Make a simple connection with apache flink and make operations on data.
+ * Class with some example implementations. For debug pruposes
  * @author viniciuspc
  *
  */
@@ -26,20 +28,34 @@ public class ConnectionTest {
 	public static void main(String[] args) throws Exception {
 		final ParameterTool params = ParameterTool.fromArgs(args);
 		
-		//ExecutionEnvironment env = CollectionEnvironment.createRemoteEnvironment("localhost", 8081);
-		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+		timeWindowExample();
 		
-//		DataSet<Integer> amounts = env.fromElements(1, 29,40, 50);
-//		
-//		int threshold = 30;
-//		List<Integer> collect = amounts
-//				 .filter(a -> a > threshold)
-//				 .reduce((integer, t1) -> integer + t1)
-//				
-//				.collect();
-//		
-//		System.out.println(collect);
+		
+		
+		
+		
+		
+	}
+	
+	public static void collectExample() throws Exception {
+		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+		
+		
+		DataSet<Integer> amounts = env.fromElements(1, 29,40, 50);
+		
+		int threshold = 30;
+		List<Integer> collect = amounts
+				 .filter(a -> a > threshold)
+				 .reduce((integer, t1) -> integer + t1)
+				
+				.collect();
+		
+		System.out.println(collect);
+	}
+	
+	public static void timeWindowExample() throws Exception {
+		StreamExecutionEnvironment env =StreamExecutionEnvironment.createRemoteEnvironment("localhost", 8081);
+		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 		
 		DataStream<String> text = env.readTextFile("text-files/timewindowtest.csv");
 		
@@ -66,9 +82,6 @@ public class ConnectionTest {
 		
 		
 		env.execute();
-		
-		
-		
 	}
 
 }
