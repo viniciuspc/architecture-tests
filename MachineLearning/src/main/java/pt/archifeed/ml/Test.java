@@ -1,9 +1,13 @@
 package pt.archifeed.ml;
 
+import java.util.Vector;
+
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.trees.RandomForest;
+import weka.core.DenseInstance;
+import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SerializationHelper;
 import weka.core.converters.ConverterUtils.DataSource;
@@ -12,11 +16,13 @@ import weka.filters.unsupervised.attribute.NumericToBinary;
 import weka.filters.unsupervised.instance.RemovePercentage;
 
 public class Test {
+	
+	private static final String FILENAME = "models/randomForest.model";
 
 	public static void main(String[] args) throws Exception {
 		Instances data = prepareDataset();
-		trainModel(data);
-		
+		//trainModel(data);
+		loadModelAndClassify();
 		
 		
 	}
@@ -70,16 +76,36 @@ public class Test {
 		cs.buildClassifier(trainingData);
 		
 		System.out.println("Training Finished...");
+		Vector<Object> v = new Vector<Object>();
+		v.add(cs);
+		v.add(new Instances(data,0));
 		
-		SerializationHelper.write("models/randomForest.model", cs);
+		SerializationHelper.write(FILENAME, v);
 		
 		Evaluation eval = new Evaluation(trainingData);
 		eval.evaluateModel(cs, testData);
 		System.out.println(eval.toSummaryString("\nResults\n======\n", false));
-		double[][] confusionMatrix = eval.confusionMatrix();
+		//double[][] confusionMatrix = eval.confusionMatrix();
 		
 		System.out.println(eval.toMatrixString());
 		
+		
+		
+	}
+	
+	public static void loadModelAndClassify() throws Exception {
+		Vector v = (Vector) SerializationHelper.read(FILENAME);
+		Classifier c = (Classifier) v.get(0);
+		Instances header = (Instances) v.get(1);
+		
+		
+		
+		Instance inst = new DenseInstance(header.numAttributes());
+		inst.setDataset(header);
+		inst.setValue(header.attribute("step"), 1);
+		
+		double classifyInstance = c.classifyInstance(inst);
+		System.out.println(classifyInstance);
 		
 	}
 
