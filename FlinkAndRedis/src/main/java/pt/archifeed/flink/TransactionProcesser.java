@@ -49,7 +49,7 @@ public class TransactionProcesser {
 		
 		//StreamExecutionEnvironment env =StreamExecutionEnvironment.createRemoteEnvironment("localhost", 8081);
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-		//env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 		
 		
 		
@@ -71,11 +71,11 @@ public class TransactionProcesser {
 		//2 - Convert text into Object while enrich it with the country information. Output TransactionModel
 		SingleOutputStreamOperator<TransactionModel> transactionModels = text.map(new EnrichMapper(enrichmentHost));
 		//3 - Make a agregation in a time window and sum the amount. Otput ...
-//		SingleOutputStreamOperator<Tuple2<String, Double>> aggregate = transactionModels
-//										.assignTimestampsAndWatermarks(new HourlyExtractor(Time.hours(1)))
-//										.keyBy((transaction) -> transaction.getNameOrig())
-//										.window(TumblingEventTimeWindows.of(Time.hours(2)))
-//										.aggregate(new SumAggregate());
+		SingleOutputStreamOperator<Tuple2<String, Double>> aggregate = transactionModels
+										.assignTimestampsAndWatermarks(new HourlyExtractor(Time.hours(1)))
+										.keyBy((transaction) -> transaction.getNameOrig())
+										.window(TumblingEventTimeWindows.of(Time.hours(2)))
+										.aggregate(new SumAggregate());
 		
 		//4 - apply rules - country and sum of the amunt Output TransactionModel
 		SingleOutputStreamOperator<TransactionModel> transactionModelsWithRules = transactionModels.map(new RulesMapper(decisionsRulesHost));
