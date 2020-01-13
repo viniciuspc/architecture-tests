@@ -51,13 +51,13 @@ MSET  "Guinea" "Fraud" "Poland" "Fraud" "Guyana" "Fraud" "Sri Lanka" "Fraud" "Hu
 	- `--secret` A secret phrase used for encripton (can be removed if no encription is required)
 	- `--AES` The size of AES encription "128" or "256", requires the `--secret` argument. 
 	- `--file-path` File path for source transactions.
-	- `--model-file-path` path with a Weka model class serilized, used to classify the transactions.
+	- `--model-file-path` path with a Weka model class serilized, used to classifyok, transactions.
 
 
 ### Workflow Description
 1. Open a stream with the file content.
 2. Convert text into a Java Object and enrich it with countries' information.
-3. Single value aggregation. (WIP)
+3. Single value aggregation by event-time (timewindow aggregation: 2 time units). (WIP)
 4. Apply rules.
 5. Apply machine learning model.
 6. Convert the Java Object into a json response and encrypt it if needed.
