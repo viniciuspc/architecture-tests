@@ -55,3 +55,10 @@ MSET  "Guinea" "Fraud" "Poland" "Fraud" "Guyana" "Fraud" "Sri Lanka" "Fraud" "Hu
 
 
 ### Workflow Description
+1. Open stream with the file contents.
+2. Convert text into a Java Object and enrich it with country information.
+3. (Work in progress) Make an agregation in time window and sum the amount value.
+4. Apply rules.
+5. Apply machine learning model.
+6. Convert the Java Object in json and encrypt it if necessary.
+7. Sink the json to the redis instance of transactions.
