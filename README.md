@@ -45,20 +45,20 @@ MSET  "Guinea" "Fraud" "Poland" "Fraud" "Guyana" "Fraud" "Sri Lanka" "Fraud" "Hu
 --transactions-host "172.18.0.6" --decisions-rules-host "172.18.0.5" --enrichment-host "172.18.0.4" --secret "h.uzZJ$j3S^jHV" --AES "128" --file-path "/opt/flink/files/200k.csv" --model-file-path "/opt/flink/files/randomForest.model"
 ```
 - Arguments:
-	- `--transactions-host` IP of the running redis instance for transactions
-	- `--decisions-rules-host` IP of the running redis instance for rules
-	- `--enrichment-host` IP of the running redis instance for enrichment
-	- `--secret` A secret phrase used at the encripton, can be removed if no encription is required
+	- `--transactions-host` IP of the running redis instance holding transaction's data.
+	- `--decisions-rules-host` IP of the running redis instance holding decison rules' data.
+	- `--enrichment-host` IP of the running redis instance for holding enrichment data.
+	- `--secret` A secret phrase used for encripton (can be removed if no encription is required)
 	- `--AES` The size of AES encription "128" or "256", requires the `--secret` argument. 
-	- `--file-path` File path with the transactions to be processed.
+	- `--file-path` File path for source transactions.
 	- `--model-file-path` path with a Weka model class serilized, used to classify the transactions.
 
 
 ### Workflow Description
-1. Open stream with the file contents.
-2. Convert text into a Java Object and enrich it with country information.
-3. (Work in progress) Make an agregation in time window and sum the amount value.
+1. Open a stream with the file content.
+2. Convert text into a Java Object and enrich it with countries' information.
+3. Single value aggregation. (WIP)
 4. Apply rules.
 5. Apply machine learning model.
-6. Convert the Java Object in json and encrypt it if necessary.
-7. Sink the json to the redis instance of transactions.
+6. Convert the Java Object into a json response and encrypt it if needed.
+7. Sink json result to the processed transactions' redis instance.
