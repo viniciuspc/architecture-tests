@@ -26,7 +26,7 @@ docker run --network=flink-compose_default --name redis-transactions -d redis
 ```
 3. Populate Mock Enrichment cache, by running the `GenerateEnrichdata.jar` in apache flink webapp using the following arguments:
 ```
---enrichment-host "172.18.0.4" --file-path "/opt/flink/transactions.csv" --localtion "dest"
+--enrichment-host "172.18.0.4" --file-path "/opt/flink/transactions.csv" --location "dest"
 ```
 - Which means:
     - It will read the file given at --file-path, and use the "nameDest" column as key and an random country name as value. 
