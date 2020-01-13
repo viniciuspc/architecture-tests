@@ -24,9 +24,9 @@ docker run --network=flink-compose_default --name redis-enrichment-data -d redis
 docker run --network=flink-compose_default --name redis-decision-rules -d redis
 docker run --network=flink-compose_default --name redis-transactions -d redis
 ```
-3. Submit the provided "job.jar" to the flink unsing its webapp
+3. Submit the provided "job.jar" file to Flink using its web UI.
 
-4. Populate Mock Enrichment cache, by running the job.jar on apache flink webapp using `pt.archifeed.flink.GenerateEnrichdata` as entry-point and using the following arguments:
+4. Populate Mock Enrichment cache, by running the "job.jar" on apache flink webapp using `pt.archifeed.flink.GenerateEnrichdata` as entry-point along with the following arguments:
 ```
 --enrichment-host "172.18.0.4" --file-path "/opt/flink/transactions.csv" --location "dest"
 ```
@@ -41,7 +41,7 @@ docker run --network=flink-compose_default --name redis-transactions -d redis
 MSET  "Guinea" "Fraud" "Poland" "Fraud" "Guyana" "Fraud" "Sri Lanka" "Fraud" "Hungry" "Fraud" "Ireland" "Fraud" "United States Minor Outlying Islands" "Fraud" "Taiwan, Province of China" "Fraud" "St. Pierre and Miquelon" "Fraud" "Congo" "Fraud"
 ```
 
-6. Run the experiment by, on the apache flink webapp using `pt.archifeed.flink.TransactionProcesser` as entry-point and with the following arguments:
+6. Run the experiment by, on the apache Flink web UI using `pt.archifeed.flink.TransactionProcesser` as entry-point, with the following arguments:
 
 ```
 --transactions-host "172.18.0.6" --decisions-rules-host "172.18.0.5" --enrichment-host "172.18.0.4" --secret "h.uzZJ$j3S^jHV" --AES "128" --file-path "/opt/flink/files/200k.csv" --model-file-path "/opt/flink/files/randomForest.model"
