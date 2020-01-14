@@ -1,0 +1,31 @@
+version: "2.1"
+services:
+  jobmanager:
+    image: ${FLINK_DOCKER_IMAGE_NAME:-flink}
+    expose:
+      - "6123"
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    volumes:
+      - ./files:/opt/flink/files
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+      - "FLINK_PROPERTIES=jobmanager.heap.size: 25600m\nakka.ask.timeout: 200s"
+
+  taskmanager:
+    image: ${FLINK_DOCKER_IMAGE_NAME:-flink}
+    expose:
+      - "6121"
+      - "6122"
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    links:
+      - "jobmanager:jobmanager"
+    volumes:
+      - ./files:/opt/flink/files
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+      - "FLINK_PROPERTIES=taskmanager.heap.size: 25600m\nakka.ask.timeout: 200s"
+
