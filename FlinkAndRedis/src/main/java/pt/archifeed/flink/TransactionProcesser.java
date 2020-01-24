@@ -42,9 +42,11 @@ public class TransactionProcesser {
 		String enrichmentHost = params.get("enrichment-host");
 		String secret = params.get("secret");
 		String aesType = params.get("AES");
-		//Load the vecto only if it is not yet loaded (by other thread).
-		if(v == null) {
-			v = (Vector) SerializationHelper.read(params.get("model-file-path"));
+		if(params.has("model-file-path")) {
+		//Load the vector only if it is not yet loaded (by other thread) yet.
+			if(v == null) {
+				v = (Vector) SerializationHelper.read(params.get("model-file-path"));
+			}
 		}
 		
 		//StreamExecutionEnvironment env =StreamExecutionEnvironment.createRemoteEnvironment("localhost", 8081);
@@ -80,7 +82,11 @@ public class TransactionProcesser {
 		//4 - apply rules - country and sum of the amunt Output TransactionModel
 		SingleOutputStreamOperator<TransactionModel> transactionModelsWithRules = transactionModels.map(new RulesMapper(decisionsRulesHost));
 		//5 - apply machine learning model
-		SingleOutputStreamOperator<TransactionModel> transactionModelsWithMlApplied = transactionModels.map(new ApplyMLMapper(v));
+		SingleOutputStreamOperator<TransactionModel> transactionModelsWithMlApplied = transactionModelsWithRules;
+		if(v != null) {
+			//Only apply ml if a machine lerning model was provide (v contains that model)
+			transactionModelsWithMlApplied = transactionModelsWithRules.map(new ApplyMLMapper(v));
+		}
 		//6 - Convert to json and encrypt if is nescessary. Output Tuple2<String,String>
 		SingleOutputStreamOperator<Tuple2<String,String>> tuples = transactionModelsWithMlApplied.map(new JsonEncryptMapper(initialTime, aes));
 		//7 - sink this to redis.

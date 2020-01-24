@@ -114,7 +114,7 @@ public class TransactionModel implements Serializable {
 
 
 	public void setCountryOrig(String countryOrig) {
-		this.countryOrig = countryOrig;
+		this.countryOrig = countryOrig != null ? countryOrig : "";
 	}
 
 
@@ -162,7 +162,7 @@ public class TransactionModel implements Serializable {
 
 
 	public void setCountryDest(String countryDest) {
-		this.countryDest = countryDest;
+		this.countryDest = countryDest != null ? countryDest : "";
 	}
 
 
