@@ -17,7 +17,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>fully.qualified.MainClass</mainClass>
+							<mainClass>pt.archifeed.flink.TransactionProcesser</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>
