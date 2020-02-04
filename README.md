@@ -48,12 +48,12 @@ MSET  "Guinea" "Fraud" "Poland" "Fraud" "Guyana" "Fraud" "Sri Lanka" "Fraud" "Hu
 ```
 - Arguments:
 	- `--transactions-host` IP of the running redis instance holding transaction's data.
-	- `--decisions-rules-host` IP of the running redis instance holding decison rules' data.
+	- `--decisions-rules-host` IP of the running redis instance holding decision rules' data.
 	- `--enrichment-host` IP of the running redis instance for holding enrichment data.
-	- `--secret` A secret phrase used for encripton (can be removed if no encription is required)
-	- `--AES` The size of AES encription "128" or "256", requires the `--secret` argument. 
+	- `--secret` A secret phrase used for encryption (can be removed if no encryption is required)
+	- `--AES` The size of AES encryption "128" or "256", requires the `--secret` argument. 
 	- `--file-path` File path for source transactions.
-	- `--model-file-path` path with a Weka model class serilized, used to classifyok, transactions.
+	- `--model-file-path` path with a Weka model class serialized, used to classify transactions.
 
 
 ### Workflow Description
