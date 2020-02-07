@@ -36,9 +36,7 @@ public class JsonEncryptMapper extends RichMapFunction<TransactionModel, Tuple2<
 		//Increase the counter
 		String key = String.valueOf(id.getAndIncrement());
 		
-		if(id.get()%10000 == 0) {
-			System.out.println(id.get()+": "+Duration.between(this.initialTime, LocalTime.now()).toMillis());
-		}
+		
 		
 		//Convert Transaction to json string
 		String json = new JSONObject(transaction).toString();
@@ -50,6 +48,10 @@ public class JsonEncryptMapper extends RichMapFunction<TransactionModel, Tuple2<
 		
 		//Convert Transaction to json string
 		Tuple2<String, String> tuple2 = new Tuple2<String, String>(key, json);
+		
+		if(id.get()%10000 == 0) {
+			System.out.println(id.get()+": "+Duration.between(this.initialTime, LocalTime.now()).toMillis());
+		}
 		
 		return tuple2;
 	}

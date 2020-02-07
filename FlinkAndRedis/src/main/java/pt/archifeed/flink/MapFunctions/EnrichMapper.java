@@ -46,9 +46,19 @@ public class EnrichMapper extends RichMapFunction<String, TransactionModel> {
 		String[] fields = value.split(",");
 		TransactionModel transaction = new TransactionModel(fields);
 		
-		transaction.setCountryOrig(enrichmentData.get(transaction.getNameOrig()));
+		if (transaction.getNameOrig() == null || transaction.getNameOrig().length() < 4) {
+			
+			transaction.setCountryOrig(enrichmentData.get(transaction.getNameOrig()));
+		} else {
+			transaction.setCountryOrig(enrichmentData.get(transaction.getNameOrig().substring(0, 4)));
+		}
+
+		if (transaction.getNameDest() == null || transaction.getNameDest().length() < 4) {
+			transaction.setCountryDest(enrichmentData.get(transaction.getNameDest()));
+		} else {
+			transaction.setCountryDest(enrichmentData.get(transaction.getNameDest().substring(0, 4)));
+		}
 		
-		transaction.setCountryDest(enrichmentData.get(transaction.getNameDest()));
 		
 		enrichmentData.close();
 		

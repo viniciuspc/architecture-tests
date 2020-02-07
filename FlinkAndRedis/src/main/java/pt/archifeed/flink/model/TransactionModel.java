@@ -1,11 +1,16 @@
 package pt.archifeed.flink.model;
 
+import java.io.Serializable;
+
 /**
  * Model of a Transaction to serialize as json.
  * @author viniciuspc
  *
  */
-public class TransactionModel {
+public class TransactionModel implements Serializable {
+	
+	private static final long serialVersionUID = -1263457772420240789L;
+	
 	private int step;
 	private String type;
 	private double amount;
@@ -17,7 +22,12 @@ public class TransactionModel {
 	private String countryDest;
 	private double oldbalanceDest;
 	private double newbalanceDest;
-	private boolean isFraud;
+	private boolean fraud;
+	
+	//No argument constructor for the flink POJO convention
+	public TransactionModel() {
+		super();
+	}
 	
 	public TransactionModel(String[] fields) {
 		super();
@@ -104,7 +114,7 @@ public class TransactionModel {
 
 
 	public void setCountryOrig(String countryOrig) {
-		this.countryOrig = countryOrig;
+		this.countryOrig = countryOrig != null ? countryOrig : "";
 	}
 
 
@@ -152,7 +162,7 @@ public class TransactionModel {
 
 
 	public void setCountryDest(String countryDest) {
-		this.countryDest = countryDest;
+		this.countryDest = countryDest != null ? countryDest : "";
 	}
 
 
@@ -182,13 +192,13 @@ public class TransactionModel {
 
 
 	public boolean isFraud() {
-		return isFraud;
+		return fraud;
 	}
 
 
 
 	public void setFraud(boolean isFraud) {
-		this.isFraud = isFraud;
+		this.fraud = isFraud;
 	}
 	
 	
