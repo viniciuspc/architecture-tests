@@ -21,8 +21,8 @@ public class Test {
 
 	public static void main(String[] args) throws Exception {
 		Instances data = prepareDataset();
-		//trainModel(data);
-		loadModelAndClassify();
+		trainModel(data);
+		//loadModelAndClassify();
 		
 		
 	}
@@ -68,10 +68,11 @@ public class Test {
 		RandomForest cs = new RandomForest();
 		//cs.setBagSizePercent(50);
 		cs.setDebug(true);
-		cs.setNumIterations(5);
-		cs.setMaxDepth(6);
+		cs.setNumIterations(500);
+		cs.setMaxDepth(10);
 		cs.setNumFeatures(2);
 		cs.setBagSizePercent(2);
+		
 		
 		cs.buildClassifier(trainingData);
 		
