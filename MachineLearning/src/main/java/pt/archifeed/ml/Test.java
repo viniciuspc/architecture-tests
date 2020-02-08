@@ -67,11 +67,11 @@ public class Test {
 		//Classifier cs = new NaiveBayes();
 		RandomForest cs = new RandomForest();
 		//cs.setBagSizePercent(50);
-		cs.setDebug(true);
+		//cs.setDebug(true);
 		cs.setNumIterations(500);
 		cs.setMaxDepth(10);
-		cs.setNumFeatures(2);
-		cs.setBagSizePercent(2);
+		//cs.setNumFeatures(2);
+		//cs.setBagSizePercent(2);
 		
 		
 		cs.buildClassifier(trainingData);
