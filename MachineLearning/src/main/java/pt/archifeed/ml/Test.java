@@ -31,13 +31,17 @@ public class Test {
 		//Load a file with the transactions to train the model.
 		DataSource source = new DataSource("datasources/paysim500k.csv");
 		Instances data = source.getDataSet();
-		//Remove the isFlaged as Instance
-		data.deleteAttributeAt(10);
+		//remove non numerica instances, so the training can in memory.
+		data.deleteAttributeAt(1);
+		data.deleteAttributeAt(2);
+		data.deleteAttributeAt(4);
+		//Remove the isFlaged from Instances
+		data.deleteAttributeAt(7);
 		
 		//Options to convert the isFraud colunm from numeric to binary
 		String[] options = new String[2];
 		options[0] = "-R";
-		options[1] = "10";
+		options[1] = "7";
 		
 		//Convert the isFraud colunm to binary
 		NumericToBinary numToB = new NumericToBinary();
@@ -45,7 +49,7 @@ public class Test {
 		numToB.setInputFormat(data);
 		Instances newData = Filter.useFilter(data, numToB);
 		
-		newData.setClassIndex(9);
+		newData.setClassIndex(6);
 		
 		return newData;
 	}
@@ -64,6 +68,9 @@ public class Test {
 		Instances testData = Filter.useFilter(data, rp);
 		System.out.println("Test Size: "+testData.size());
 		
+		String[] options = new String[1];
+		options[0] = "-print";
+		
 		//Classifier cs = new NaiveBayes();
 		RandomForest cs = new RandomForest();
 		//cs.setBagSizePercent(50);
@@ -72,11 +79,12 @@ public class Test {
 		cs.setMaxDepth(10);
 		//cs.setNumFeatures(2);
 		//cs.setBagSizePercent(2);
-		
+		cs.setNumExecutionSlots(0);
+		//cs.setOptions(options);
 		
 		cs.buildClassifier(trainingData);
 		
-		System.out.println("Training Finished...");
+		System.out.println("\nTraining Finished...");
 		Vector<Object> v = new Vector<Object>();
 		v.add(cs);
 		v.add(new Instances(data,0));
