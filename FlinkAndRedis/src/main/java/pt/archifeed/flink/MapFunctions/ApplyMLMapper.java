@@ -39,12 +39,9 @@ public class ApplyMLMapper extends RichMapFunction<TransactionModel, Transaction
 			Instance inst = new DenseInstance(header.numAttributes());
 			inst.setDataset(header);
 			inst.setValue(header.attribute("step"), value.getStep());
-			inst.setValue(header.attribute("type"), value.getType());
 			inst.setValue(header.attribute("amount"), value.getAmount());
-			inst.setValue(header.attribute("nameOrig"), value.getNameOrig());
 			inst.setValue(header.attribute("oldbalanceOrg"), value.getOldbalanceOrg());
 			inst.setValue(header.attribute("newbalanceOrig"), value.getNewbalanceOrig());
-			inst.setValue(header.attribute("nameDest"), value.getNameDest());
 			inst.setValue(header.attribute("oldbalanceDest"), value.getOldbalanceDest());
 			inst.setValue(header.attribute("newbalanceDest"), value.getNewbalanceDest());
 			
